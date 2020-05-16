@@ -157,7 +157,7 @@ pub fn x_system_to_utf8(s: &str) -> String {
     result
 }
 
-/// Convert h-system "jhauhdo" to UTF-8 "ĵaŭdo"
+/// Convert h-system "jhaudo" to UTF-8 "ĵaŭdo"
 pub fn h_system_to_utf8(s: &str) -> String {
     let ac = AhoCorasickBuilder::new()
         .ascii_case_insensitive(true)

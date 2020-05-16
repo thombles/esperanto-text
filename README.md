@@ -15,6 +15,25 @@ changing the meaning of real words.
 
 A binary called `eotext` is included to use these functions from a CLI.
 
+### Usage
+
+To use the published crate in your Rust program add the following to
+`Cargo.toml`:
+
+```
+esperanto-text = "0.1.0"
+```
+
+If you have cloned the repo and want to run the `eotext` program you must have
+a Rust toolchain installed. The recommended way to do is is via
+[Rustup](https://rustup.rs/). Run the following command:
+
+```
+cargo build --release --bin eotext
+```
+
+The built binary will be located at `target/release/eotext`.
+
 ### Example: UTF-8 to x-system
 
 ```rust

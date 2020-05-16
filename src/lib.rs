@@ -16,44 +16,63 @@
 //!
 //! TODO
 
-use aho_corasick::AhoCorasick;
+use aho_corasick::{AhoCorasick, AhoCorasickBuilder};
 
-const FROM_X: &[&str] = &[
+const FROM_X_CI: &[&str] = &[
     "cx", "gx", "hx", "jx", "sx", "ux",
-    "CX", "GX", "HX", "JX", "SX", "UX",
-    "Cx", "Gx", "Hx", "Jx", "Sx", "Ux",
-    "cX", "gX", "hX", "jX", "sX", "uX",
-];
-const TO_UTF8: &[&str] = &[
-    "ĉ", "ĝ", "ĥ", "ĵ", "ŝ", "ŭ",
-    "Ĉ", "Ĝ", "Ĥ", "Ĵ", "Ŝ", "Ŭ",
-    "Ĉ", "Ĝ", "Ĥ", "Ĵ", "Ŝ", "Ŭ",
-    "Ĉ", "Ĝ", "Ĥ", "Ĵ", "Ŝ", "Ŭ",
 ];
 const FROM_UTF8: &[&str] = &[
     "ĉ", "ĝ", "ĥ", "ĵ", "ŝ", "ŭ",
     "Ĉ", "Ĝ", "Ĥ", "Ĵ", "Ŝ", "Ŭ",
 ];
-const TO_X: &[&str] = &[
-    "cx", "gx", "hx", "jx", "sx", "ux",
-    "CX", "GX", "HX", "JX", "SX", "UX",
-];
 
 /// Convert UTF-8 "ĵaŭdo" to x-system "jxauxdo"
 pub fn utf8_to_x_system(s: &str) -> String {
-    do_replace(s, FROM_UTF8, TO_X)
+    let ac = AhoCorasick::new(FROM_UTF8);
+    let mut result = String::new();
+    ac.replace_all_with(s, &mut result, |_, found, dst| {
+        dst.push_str(match found {
+            "ĉ" => "cx",
+            "ĝ" => "gx",
+            "ĥ" => "hx",
+            "ĵ" => "jx",
+            "ŝ" => "sx",
+            "ŭ" => "ux",
+            "Ĉ" => "CX",
+            "Ĝ" => "GX",
+            "Ĥ" => "HX",
+            "Ĵ" => "JX",
+            "Ŝ" => "SX",
+            "Ŭ" => "UX",
+            _ => found,
+        });
+        true
+    });
+    result
 }
 
 /// Convert x-system "jxauxdo" to UTF-8 "ĵaŭdo"
 pub fn x_system_to_utf8(s: &str) -> String {
-    do_replace(s, FROM_X, TO_UTF8)
-}
-
-fn do_replace(haystack: &str, from: &[&str], to: &[&str]) -> String {
-    let ac = AhoCorasick::new(from);
+    let ac = AhoCorasickBuilder::new()
+        .ascii_case_insensitive(true)
+        .build(FROM_X_CI);
     let mut result = String::new();
-    ac.replace_all_with(haystack, &mut result, |m, _, dst| {
-        dst.push_str(to[m.pattern()]);
+    ac.replace_all_with(s, &mut result, |_, found, dst| {
+        dst.push_str(match found {
+            "cx" => "ĉ",
+            "gx" => "ĝ",
+            "hx" => "ĥ",
+            "jx" => "ĵ",
+            "sx" => "ŝ",
+            "ux" => "ŭ",
+            "CX" | "Cx" | "cX" => "Ĉ",
+            "GX" | "Gx" | "gX" => "Ĝ",
+            "HX" | "Hx" | "hX" => "Ĥ",
+            "JX" | "Jx" | "jX" => "Ĵ",
+            "SX" | "Sx" | "sX" => "Ŝ",
+            "UX" | "Ux" | "uX" => "Ŭ",
+            _ => found,
+        });
         true
     });
     result

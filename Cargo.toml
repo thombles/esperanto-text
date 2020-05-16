@@ -3,6 +3,9 @@ name = "esperanto-text"
 version = "0.1.0"
 authors = ["Thomas Karpiniec <tk@1.21jiggawatts.net>"]
 edition = "2018"
+description = "Convert Esperanto text between UTF-8, x-system and h-system transliterations."
+readme = "README.md"
+keywords = ["esperanto", "string", "text", "transliteration"]
 
 [dependencies]
 aho-corasick = "0.7"

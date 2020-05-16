@@ -1,29 +1,65 @@
-//! Convert Esperanto text between UTF-8, x-system and h-system transliterations.
-//!
-//! When correctly printed, Esperanto text has various diacritics that can be
-//! properly represented in UTF-8. Those who are limited to ASCII or are unable
-//! to type these characters often resort to the "h-system" or "x-system". In
-//! these, a suffix is added to those letters which should have a diacritic.
-//!
-//! This crate provides convenience functions for converting a string from one
-//! transliteration to another. For the x-system this can be done with complete
-//! accuracy as there is no ambiguity. For the h-system, a list of exceptions
-//! is used to avoid replacing h suffixes that occur in normal Esperanto words.
-//!
-//! A binary called `eotext` is included to use these functions from a CLI.
-//!
-//! Example usage:
-//!
-//! TODO
+/*!
+Convert Esperanto text between UTF-8, x-system and h-system transliterations.
 
-use aho_corasick::{AhoCorasick, AhoCorasickBuilder};
+When correctly printed, Esperanto text has various diacritics that can be
+properly represented in UTF-8. Those who are limited to ASCII or are unable
+to type these characters often resort to the "h-system" or "x-system". In
+these, a suffix is added to those letters which should have a diacritic.
 
+This crate provides convenience functions for converting a string from one
+transliteration to another. For the x-system this can be done with complete
+accuracy as there is no ambiguity. For the h-system, a list of exceptions
+is used to avoid replacing h suffixes that occur in normal Esperanto words.
+
+A binary called `eotext` is included to use these functions from a CLI.
+
+Example usage:
+
+TODO
+*/
+
+use aho_corasick::{AhoCorasick, AhoCorasickBuilder, MatchKind};
+
+/// Patterns to match for x-system input (case-insensitive)
 const FROM_X_CI: &[&str] = &[
     "cx", "gx", "hx", "jx", "sx", "ux",
 ];
+
+/// Patterns to match for UTF-8 input
+///
+/// Need to specify both cases as AhoCorasick's insensitive mode is ASCII-only.
 const FROM_UTF8: &[&str] = &[
     "ĉ", "ĝ", "ĥ", "ĵ", "ŝ", "ŭ",
     "Ĉ", "Ĝ", "Ĥ", "Ĵ", "Ŝ", "Ŭ",
+];
+
+/// Patterns to match for h-system input (case-insensitive)
+///
+/// This includes all the transliterations but also a reasonably exhaustive
+/// list of word fragments that need to be left alone, rather than blindly
+/// substituting "something+h" with a diacritic. These longer segments will
+/// be allowed to pass through unchanged.
+const FROM_H_CI: &[&str] = &[
+    // Uses of "h" to leave alone
+    "komenchor", "kuracherb", "potenchav", "prononchelp", "senchav",
+    /* (ŝ) */ "pruchelp", "drogherb", "flughaven", "longhar",
+    /* (ŝ) */ "lesvigholstini", "vanghar", "gajhumor", "amashisteri",
+    /* (aŭ) */ "tobushaltej", "bushaltej", /* (ĉ) */ "ashund", "dishak",
+    "disharmoni", "dishelig", "dishirtig", "fikshejm", "grashav",
+    "grashepata", "invershav", "kashal", "misharmoni", "mishelp",
+    "mishumor", "neinvershav", "plushor", "sekshontem", "seshektar",
+    "seshor", "sukceshav",
+
+    // Uses of "au" (without circumflex) to leave alone
+    "blankaurs", "doganauni", /* (eŭ) */ "ropauni", "grandaursin",
+    "imaginaraunu", "kakauj", "malgrandaursin", "matricaunu",
+    "naur", "praul", "saudaarabuj", "tiaul", "traurb", "unuaul",
+
+    // Regular letters to transliterate
+    "ch", "gh", "hh", "jh", "sh",
+
+    // In most situations this is meant to become "aŭ"
+    "au",
 ];
 
 /// Convert UTF-8 "ĵaŭdo" to x-system "jxauxdo"
@@ -51,6 +87,31 @@ pub fn utf8_to_x_system(s: &str) -> String {
     result
 }
 
+/// Convert UTF-8 "ĵaŭdo" to h-system "jhaudo"
+pub fn utf8_to_h_system(s: &str) -> String {
+    let ac = AhoCorasick::new(FROM_UTF8);
+    let mut result = String::new();
+    ac.replace_all_with(s, &mut result, |_, found, dst| {
+        dst.push_str(match found {
+            "ĉ" => "ch",
+            "ĝ" => "gh",
+            "ĥ" => "hh",
+            "ĵ" => "jh",
+            "ŝ" => "sh",
+            "ŭ" => "u",
+            "Ĉ" => "CH",
+            "Ĝ" => "GH",
+            "Ĥ" => "HH",
+            "Ĵ" => "JH",
+            "Ŝ" => "SH",
+            "Ŭ" => "U",
+            _ => found,
+        });
+        true
+    });
+    result
+}
+
 /// Convert x-system "jxauxdo" to UTF-8 "ĵaŭdo"
 pub fn x_system_to_utf8(s: &str) -> String {
     let ac = AhoCorasickBuilder::new()
@@ -71,6 +132,39 @@ pub fn x_system_to_utf8(s: &str) -> String {
             "JX" | "Jx" | "jX" => "Ĵ",
             "SX" | "Sx" | "sX" => "Ŝ",
             "UX" | "Ux" | "uX" => "Ŭ",
+            _ => found,
+        });
+        true
+    });
+    result
+}
+
+/// Convert h-system "jhauhdo" to UTF-8 "ĵaŭdo"
+pub fn h_system_to_utf8(s: &str) -> String {
+    let ac = AhoCorasickBuilder::new()
+        .ascii_case_insensitive(true)
+        .match_kind(MatchKind::LeftmostLongest)
+        .build(FROM_H_CI);
+    let mut result = String::new();
+    ac.replace_all_with(s, &mut result, |_, found, dst| {
+        dst.push_str(match found {
+            "ch" => "ĉ",
+            "gh" => "ĝ",
+            "hh" => "ĥ",
+            "jh" => "ĵ",
+            "sh" => "ŝ",
+            "au" => "aŭ",
+            "CH" | "Ch" | "cH" => "Ĉ",
+            "GH" | "Gh" | "gH" => "Ĝ",
+            "HH" | "Hh" | "hH" => "Ĥ",
+            "JH" | "Jh" | "jH" => "Ĵ",
+            "SH" | "Sh" | "sH" => "Ŝ",
+            "AU" => "AŬ",
+            "Au" => "Aŭ",
+            "aU" => "aŬ",
+            // all the word fragments go through with existing casing
+            // and without messing up the legitimate usage of "h"
+            // or the legitimate usage of "au"
             _ => found,
         });
         true
@@ -113,5 +207,52 @@ mod tests {
         let input = "eĥoŝanĝo ĉiuĵaŭde EĤOŜANĜO ĈIUĴAŬDE";
         let expected = "ehxosxangxo cxiujxauxde EHXOSXANGXO CXIUJXAUXDE";
         assert_eq!(&utf8_to_x_system(input), expected);
+    }
+
+    #[test]
+    fn test_utf8_to_h_system_noop() {
+        let input = "The quick brown fox jumps over the lazy dog. And my axe.".to_owned();
+        assert_eq!(input, utf8_to_h_system(&input));
+    }
+
+    #[test]
+    fn test_utf8_to_h_system_echo_change() {
+        let input = "eĥoŝanĝo ĉiuĵaŭde EĤOŜANĜO ĈIUĴAŬDE";
+        let expected = "ehhoshangho chiujhaude EHHOSHANGHO CHIUJHAUDE";
+        assert_eq!(&utf8_to_h_system(input), expected);
+    }
+
+    #[test]
+    fn test_h_system_to_utf8_noop() {
+        let input = "The quick brown fox jumps over the lazy dog. And my axe.".to_owned();
+        assert_eq!(input, h_system_to_utf8(&input));
+    }
+
+    #[test]
+    fn test_h_system_to_utf8_echo_change() {
+        let input = "ehhoshangho chiujhaude EHHOSHANGHO CHIUJHAUDE";
+        let expected = "eĥoŝanĝo ĉiuĵaŭde EĤOŜANĜO ĈIUĴAŬDE";
+        assert_eq!(&h_system_to_utf8(input), expected);
+    }
+
+    #[test]
+    fn test_h_system_to_utf8_mixed_case() {
+        let input = "eHhoShanGho ChiuJhAUde ehHosHangHo cHiujHaUde";
+        let expected = "eĤoŜanĜo ĈiuĴAŬde eĤoŜanĜo ĈiuĴaŬde";
+        assert_eq!(&h_system_to_utf8(input), expected);
+    }
+
+    #[test]
+    fn test_h_system_ambiguous_h() {
+        let input = "Chiuj estas senchavaj ideoj.";
+        let expected = "Ĉiuj estas senchavaj ideoj.";
+        assert_eq!(&h_system_to_utf8(input), expected);
+    }
+
+    #[test]
+    fn test_h_system_ambiguous_u() {
+        let input = "Hierau mi vizitis Nauron.";
+        let expected = "Hieraŭ mi vizitis Nauron.";
+        assert_eq!(&h_system_to_utf8(input), expected);
     }
 }

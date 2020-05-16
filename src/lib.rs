@@ -91,6 +91,7 @@ pub fn utf8_to_x_system(s: &str) -> String {
             "ĵ" => "jx",
             "ŝ" => "sx",
             "ŭ" => "ux",
+            // TODO: This is suboptimal if it's the first letter of a sentence.
             "Ĉ" => "CX",
             "Ĝ" => "GX",
             "Ĥ" => "HX",

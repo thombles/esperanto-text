@@ -3,9 +3,13 @@ name = "esperanto-text"
 version = "0.1.0"
 authors = ["Thomas Karpiniec <tk@1.21jiggawatts.net>"]
 edition = "2018"
-description = "Convert Esperanto text between UTF-8, x-system and h-system transliterations."
+description = "Convert Esperanto text between UTF-8, x-system and h-system transliterations"
 readme = "README.md"
+license = "MIT"
+categories = ["internationalization", "text-processing"]
 keywords = ["esperanto", "string", "text", "transliteration"]
+homepage = "https://git.1.21jiggawatts.net/tk/esperanto-text"
+repository = "https://git.1.21jiggawatts.net/tk/esperanto-text"
 
 [dependencies]
 aho-corasick = "0.7"

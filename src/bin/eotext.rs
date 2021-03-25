@@ -6,11 +6,20 @@ fn main() {
         invalid_input(&args);
     }
 
+    let text = &args[3];
     let output = match (args[1].as_ref(), args[2].as_ref()) {
-        ("u", "x") => esperanto_text::utf8_to_x_system(&args[3]),
-        ("x", "u") => esperanto_text::x_system_to_utf8(&args[3]),
-        ("u", "h") => esperanto_text::utf8_to_h_system(&args[3]),
-        ("h", "u") => esperanto_text::h_system_to_utf8(&args[3]),
+        ("u", "x") => esperanto_text::utf8_to_x_system(text),
+        ("x", "u") => esperanto_text::x_system_to_utf8(text),
+        ("u", "h") => esperanto_text::utf8_to_h_system(text),
+        ("h", "u") => esperanto_text::h_system_to_utf8(text),
+        ("x", "h") => {
+            let utf8 = esperanto_text::x_system_to_utf8(text);
+            esperanto_text::utf8_to_h_system(&utf8)
+        },
+        ("h", "x") => {
+            let utf8 = esperanto_text::h_system_to_utf8(text);
+            esperanto_text::utf8_to_x_system(&utf8)
+        }
         ("h", "h") | ("u", "u") | ("x", "x") => args[3].clone(),
         _ => invalid_input(&args),
     };

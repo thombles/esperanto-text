@@ -27,7 +27,7 @@ fn main() {
             let utf8 = esperanto_text::h_system_to_utf8(&text);
             esperanto_text::utf8_to_x_system(&utf8)
         }
-        ("h", "h") | ("u", "u") | ("x", "x") => args[3].clone(),
+        ("h", "h") | ("u", "u") | ("x", "x") => text.clone(),
         _ => invalid_input(&args),
     };
     println!("{}", output);

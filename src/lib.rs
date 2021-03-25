@@ -83,7 +83,18 @@ const FROM_H_CI: &[&str] = &[
 pub fn utf8_to_x_system(s: &str) -> String {
     let ac = AhoCorasick::new(FROM_UTF8);
     let mut result = String::new();
-    ac.replace_all_with(s, &mut result, |_, found, dst| {
+    ac.replace_all_with(s, &mut result, |m, found, dst| {
+        let leading_capital = match dst.chars().rev().next() {
+            Some(c) if c.is_uppercase() => false,
+            Some(_) => true,
+            None => true,
+        };
+        let (_, tail) = s.split_at(m.end());
+        let capital_follows = match tail.chars().next() {
+            Some(c) if c.is_uppercase() => true,
+            Some(_) => false,
+            None => false,
+        };
         dst.push_str(match found {
             "ĉ" => "cx",
             "ĝ" => "gx",
@@ -91,14 +102,21 @@ pub fn utf8_to_x_system(s: &str) -> String {
             "ĵ" => "jx",
             "ŝ" => "sx",
             "ŭ" => "ux",
-            // TODO: This is suboptimal if it's the first letter of a sentence.
-            "Ĉ" => "CX",
-            "Ĝ" => "GX",
-            "Ĥ" => "HX",
-            "Ĵ" => "JX",
-            "Ŝ" => "SX",
-            "Ŭ" => "UX",
-            _ => found,
+            other => match (other, leading_capital && !capital_follows) {
+                ("Ĉ", false) => "CX",
+                ("Ĝ", false) => "GX",
+                ("Ĥ", false) => "HX",
+                ("Ĵ", false) => "JX",
+                ("Ŝ", false) => "SX",
+                ("Ŭ", false) => "UX",
+                ("Ĉ", true) => "Cx",
+                ("Ĝ", true) => "Gx",
+                ("Ĥ", true) => "Hx",
+                ("Ĵ", true) => "Jx",
+                ("Ŝ", true) => "Sx",
+                ("Ŭ", true) => "Ux",
+                _ => other,
+            }
         });
         true
     });
@@ -109,7 +127,18 @@ pub fn utf8_to_x_system(s: &str) -> String {
 pub fn utf8_to_h_system(s: &str) -> String {
     let ac = AhoCorasick::new(FROM_UTF8);
     let mut result = String::new();
-    ac.replace_all_with(s, &mut result, |_, found, dst| {
+    ac.replace_all_with(s, &mut result, |m, found, dst| {
+        let leading_capital = match dst.chars().rev().next() {
+            Some(c) if c.is_uppercase() => false,
+            Some(_) => true,
+            None => true,
+        };
+        let (_, tail) = s.split_at(m.end());
+        let capital_follows = match tail.chars().next() {
+            Some(c) if c.is_uppercase() => true,
+            Some(_) => false,
+            None => false,
+        };
         dst.push_str(match found {
             "ĉ" => "ch",
             "ĝ" => "gh",
@@ -117,13 +146,21 @@ pub fn utf8_to_h_system(s: &str) -> String {
             "ĵ" => "jh",
             "ŝ" => "sh",
             "ŭ" => "u",
-            "Ĉ" => "CH",
-            "Ĝ" => "GH",
-            "Ĥ" => "HH",
-            "Ĵ" => "JH",
-            "Ŝ" => "SH",
-            "Ŭ" => "U",
-            _ => found,
+            other => match (other, leading_capital && !capital_follows) {
+                ("Ĉ", false) => "CH",
+                ("Ĝ", false) => "GH",
+                ("Ĥ", false) => "HH",
+                ("Ĵ", false) => "JH",
+                ("Ŝ", false) => "SH",
+                ("Ŭ", false) => "U",
+                ("Ĉ", true) => "Ch",
+                ("Ĝ", true) => "Gh",
+                ("Ĥ", true) => "Hh",
+                ("Ĵ", true) => "Jh",
+                ("Ŝ", true) => "Sh",
+                ("Ŭ", true) => "U",
+                _ => other,
+            }
         });
         true
     });
@@ -272,5 +309,19 @@ mod tests {
         let input = "Hierau mi vizitis Nauron.";
         let expected = "Hieraŭ mi vizitis Nauron.";
         assert_eq!(&h_system_to_utf8(input), expected);
+    }
+
+    #[test]
+    fn test_leading_capital_x_system() {
+        let input = "Ĉiuj estas belaj. Ĥ Ŝ Ĝ Ĉ Ĵ Ŭ ĤO ŜO ĜO ĈO ĴO ŬO";
+        let expected = "Cxiuj estas belaj. Hx Sx Gx Cx Jx Ux HXO SXO GXO CXO JXO UXO";
+        assert_eq!(&utf8_to_x_system(input), expected);
+    }
+
+    #[test]
+    fn test_leading_capital_h_system() {
+        let input = "Ĉiuj estas belaj. Ĥ Ŝ Ĝ Ĉ Ĵ Ŭ ĤO ŜO ĜO ĈO ĴO ŬO";
+        let expected = "Chiuj estas belaj. Hh Sh Gh Ch Jh U HHO SHO GHO CHO JHO UO";
+        assert_eq!(&utf8_to_h_system(input), expected);
     }
 }

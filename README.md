@@ -21,7 +21,7 @@ To use the published crate in your Rust program add the following to
 `Cargo.toml`:
 
 ```
-esperanto-text = "0.1.0"
+esperanto-text = "1"
 ```
 
 If you have cloned the repo and want to run the `eotext` program you must have
